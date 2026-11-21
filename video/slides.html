@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MandatePay demo slides</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0f1216; color: #e8ebef; font-family: system-ui, "Segoe UI", Roboto, sans-serif; }
+  .scene { display: none; height: 100%; padding: 70px 90px; flex-direction: column; justify-content: center; }
+  .scene.on { display: flex; }
+  h1 { font-size: 64px; margin: 0 0 12px; letter-spacing: -1px; }
+  h2 { font-size: 40px; margin: 0 0 28px; }
+  .sub { font-size: 26px; color: #98a2b0; }
+  .accent { color: #7b93ff; }
+  ul { font-size: 27px; line-height: 1.55; margin: 0; padding-left: 30px; }
+  li { opacity: 0; transform: translateY(8px); transition: all .5s; }
+  li.show { opacity: 1; transform: none; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .box { border: 1px solid #2a313a; background: #171b21; border-radius: 14px; padding: 24px 28px; font-size: 24px; line-height: 1.5; }
+  .bad { color: #ff6b6b; } .ok { color: #4cc27f; } .warn { color: #e3a33b; }
+  .mono { font-family: ui-monospace, Consolas, Menlo, monospace; }
+  .term { background: #0a0c0f; border: 1px solid #2a313a; border-radius: 12px; padding: 22px 26px; font-size: 19px; line-height: 1.6; height: 470px; overflow: hidden; white-space: pre-wrap; }
+  .term .h { color: #7b93ff; font-weight: 600; }
+  .diagram { display: grid; grid-template-columns: 1fr 120px 1.2fr 120px 1fr; align-items: center; gap: 0; font-size: 22px; }
+  .node { border: 2px solid #3b4654; border-radius: 14px; padding: 20px; text-align: center; background: #171b21; }
+  .node b { display: block; font-size: 26px; margin-bottom: 6px; }
+  .arrow { text-align: center; color: #98a2b0; font-size: 18px; }
+  .arrow::before { content: "⟶"; display: block; font-size: 42px; color: #7b93ff; }
+  .links { font-size: 26px; line-height: 1.9; }
+  .cap { position: fixed; left: 0; right: 0; bottom: 0; padding: 16px 90px 22px; background: rgba(10,12,15,.92); border-top: 1px solid #2a313a; font-size: 24px; color: #fff; }
+  .cap:empty { display: none; }
+</style>
+</head>
+<body>
+
+<div class="scene" id="title">
+  <div class="sub mono">QDay Aevum Builder Challenge #1 · stablecoin payments</div>
+  <h1 style="font-size:96px;margin-top:18px">Mandate<span class="accent">Pay</span></h1>
+  <div class="sub" style="font-size:34px">Give your AI agent a <b style="color:#fff">mandate</b>, not a wallet.</div>
+  <div class="sub" style="margin-top:40px">Spending limits for AI agents, paid in tUSD8 · live on Aevum testnet (chain 44005)</div>
+</div>
+
+<div class="scene" id="problem">
+  <h2>AI agents are starting to pay for things</h2>
+  <div class="two">
+    <div class="box"><b class="bad">Option A: give it a funded wallet</b><br>One prompt injection, one bug, one leaked key, and the whole balance is gone.</div>
+    <div class="box"><b class="warn">Option B: approve every payment</b><br>Safe, but you are now the agent's payment clerk. The point of an agent is lost.</div>
+  </div>
+  <div class="sub" style="margin-top:36px">What a company gives an employee is neither: it is a <b style="color:#fff">corporate card with rules</b>.</div>
+</div>
+
+<div class="scene" id="mandate">
+  <h2>A mandate is a session key that can only…</h2>
+  <ul>
+    <li>pay <b>allow-listed merchants</b></li>
+    <li>up to a <b>per-payment cap</b> and a <b>rolling budget</b> (aligned windows: the reset cannot be gamed)</li>
+    <li>until it <b>expires</b>, or the owner <b>revokes</b> it, or hits the <b>kill switch</b> for every agent</li>
+    <li>above a <b>review threshold</b>, payments wait for the owner's one-tap approval (funds reserved)</li>
+    <li>each invoice <b>ref is single-use</b>: a retrying agent cannot pay twice</li>
+    <li>the agent <b>holds no gas</b>: it signs an EIP-712 PaymentIntent, any relayer submits it</li>
+  </ul>
+</div>
+
+<div class="scene" id="arch">
+  <h2>How it fits together</h2>
+  <div class="diagram">
+    <div class="node"><b>Owner</b>deposits tUSD8<br>(EIP-3009, gasless)<br>issues · revokes · approves</div>
+    <div class="arrow">rules</div>
+    <div class="node" style="border-color:#7b93ff"><b>MandateVault</b>on Aevum<br>checks every rule<br>in one transaction</div>
+    <div class="arrow">pays</div>
+    <div class="node"><b>Merchant</b>receives tUSD8<br>with an invoice ref</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 120px 1.2fr 120px 1fr;margin-top:30px;font-size:22px">
+    <div></div><div></div>
+    <div class="node"><b>AI agent</b>signs a PaymentIntent<br><span class="mono" style="font-size:17px">(mandateId, merchant, amount, ref, deadline)</span><br>relayer submits it</div>
+    <div></div><div></div>
+  </div>
+</div>
+
+<div class="scene" id="demo">
+  <h2 style="margin-bottom:18px">Live run on Aevum testnet <span class="sub mono" style="font-size:20px">npm run demo:aevum · real tUSD8</span></h2>
+  <div class="term mono" id="term"></div>
+</div>
+
+<div class="scene" id="close">
+  <h1>Mandate<span class="accent">Pay</span></h1>
+  <div class="sub" style="margin-bottom:36px">Agents get to pay. Owners keep control.</div>
+  <div class="links mono">
+    <div>Code&nbsp;&nbsp;&nbsp;&nbsp;github.com/Class-now/mandatepay</div>
+    <div>Console class-now.github.io/mandatepay</div>
+    <div>Vault&nbsp;&nbsp;&nbsp;0xe990d83f74ae1adf11360dd3af69eb8470768f22</div>
+  </div>
+  <div class="sub" style="margin-top:36px">Solidity 0.8.24 · OpenZeppelin · Hardhat + viem · 18 tests · fork-tested against real tUSD8 · MIT</div>
+</div>
+
+<div class="cap" id="cap"></div>
+
+<script>
+  window.show = (id, cap) => {
+    document.querySelectorAll(".scene").forEach((s) => s.classList.toggle("on", s.id === id));
+    document.getElementById("cap").textContent = cap || "";
+  };
+  window.reveal = (n) => document.querySelectorAll(".scene.on li").forEach((li, i) => li.classList.toggle("show", i < n));
+  window.term = (html) => { const t = document.getElementById("term"); t.innerHTML += html; t.scrollTop = t.scrollHeight; };
+  window.caption = (c) => { document.getElementById("cap").textContent = c || ""; };
+</script>
+</body>
+</html>

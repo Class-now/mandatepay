@@ -2,6 +2,8 @@
 
 Give your AI agent a **mandate**, not a wallet.
 
+**Demo video (2:40):** [video/mandatepay-demo.mp4](video/mandatepay-demo.mp4) · **Live console:** https://class-now.github.io/mandatepay/
+
 AI agents are starting to buy things: API credits, train tickets, cloud hours, data. Today the choice is bad either way. Hand the agent a funded private key and one prompt injection can drain it. Make it ask a human for every purchase and it is no longer an agent.
 
 MandatePay sits in between. The owner keeps tUSD8 in a vault on Aevum testnet and issues each agent a mandate: a session key that can pay
@@ -140,7 +142,7 @@ A static page (no server, no build step at runtime) for the owner's side of the 
 - **Mandates**: budget used in the current window, what the agent can pay right now, expiry, merchants, and **Revoke now** / **Change limits** / **Merchants**. Each card carries the agent configuration (vault, mandate id and the EIP-712 `PaymentIntent` type) to paste into the agent.
 - **Activity**: every vault event for your mandates, newest first, with explorer links (paged in 1,000-block windows, as Aevum's RPC requires).
 
-Hosted: **https://class-now.github.io/mandatepay/** (points at the deployed vault on Aevum testnet by default).
+Hosted: **https://class-now.github.io/mandatepay/** (points at the deployed vault on Aevum testnet by default). Without a wallet it opens a **read-only view** of the owner who ran the live demo, so you can see the revoked mandate, its budget use and the full on-chain activity without installing anything. Add `?owner=0x...` to inspect any other owner read-only; connecting a wallet switches to your own account.
 
 Or run it from any static server:
 
@@ -164,6 +166,7 @@ scripts/fork-check.ts          EIP-3009 deposit and payment against a fork of Ae
 scripts/chain.ts               Aevum chain definition for hardhat-viem
 scripts/export-abi.mjs         writes app/abi.js from the compiled contract
 app/                           owner console (index.html, app.js, config.js, vendored viem)
+video/                         demo video, its slides and the Playwright script that records it
 ```
 
 ## Roadmap

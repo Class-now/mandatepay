@@ -93,6 +93,15 @@ async function setup() {
   $("vaultAddr").value = params.get("vault") || localStorageGet("vault") || DEFAULTS.vault;
   $("tokenAddr").value = params.get("token") || DEFAULTS.token;
   $("devkey").hidden = !isLocal;
+  // Read-only view: show an owner's mandates, escalations and activity without a wallet.
+  const viewAs = params.get("owner") || (rpcUrl === AEVUM.rpc && !params.get("vault") ? DEFAULTS.demoOwner : "");
+  if (viewAs && isAddress(viewAs)) {
+    me = getAddress(viewAs);
+    $("who").textContent = `${short(me)} · read-only`;
+    $("readonly").hidden = false;
+    $("roOwner").textContent = me;
+    loadVault();
+  }
 }
 
 function localStorageGet(k) {
@@ -124,6 +133,7 @@ async function connectInjected() {
   walletClient = createWalletClient({ chain, transport: custom(eth) });
   account = getAddress(addr);
   me = account;
+  $("readonly").hidden = true;
   eth.on?.("accountsChanged", () => location.reload());
   eth.on?.("chainChanged", () => location.reload());
   connected();
@@ -135,6 +145,7 @@ function useDevKey() {
   account = privateKeyToAccount(k);
   me = account.address;
   walletClient = createWalletClient({ chain, account, transport: http(rpcUrl) });
+  $("readonly").hidden = true;
   $("devKeyInput").value = "";
   connected();
 }
@@ -271,11 +282,19 @@ async function refresh() {
 }
 
 async function scanActivity(latest) {
-  const from = latest > SCAN_BLOCKS ? latest - SCAN_BLOCKS : 0n;
+  // Recent blocks, plus the first blocks after deployment for the hosted vault (where the live demo ran).
+  const ranges = [[latest > SCAN_BLOCKS ? latest - SCAN_BLOCKS : 0n, latest]];
+  if (DEFAULTS.vaultBlock && vault === getAddress(DEFAULTS.vault)) {
+    const s = BigInt(DEFAULTS.vaultBlock), e = s + SCAN_BLOCKS < ranges[0][0] ? s + SCAN_BLOCKS : ranges[0][0] - 1n;
+    if (e >= s) ranges.unshift([s, e]);
+    else ranges[0][0] = s < ranges[0][0] ? s : ranges[0][0];
+  }
   const logs = [];
-  for (let start = from; start <= latest; start += 1000n) {
-    const end = start + 999n > latest ? latest : start + 999n;
-    logs.push(...(await publicClient.getLogs({ address: vault, fromBlock: start, toBlock: end })));
+  for (const [from, to] of ranges) {
+    for (let start = from; start <= to; start += 1000n) {
+      const end = start + 999n > to ? to : start + 999n;
+      logs.push(...(await publicClient.getLogs({ address: vault, fromBlock: start, toBlock: end })));
+    }
   }
   const events = parseEventLogs({ abi: vaultAbi, logs });
   state.merchants.clear();

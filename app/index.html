@@ -69,6 +69,7 @@
   #toast div.bad { border-color: var(--bad); }
   .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
   .key { background: var(--chip); border-radius: 6px; padding: 8px; margin-top: 8px; }
+  .ro { background: var(--chip); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
   details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
 </style>
 </head>
@@ -85,6 +86,7 @@
 </header>
 
 <main>
+  <div id="readonly" class="ro" hidden>Read-only view of owner <span id="roOwner" class="mono"></span> (the live demo on Aevum testnet). Connect a wallet to manage your own mandates, or add <span class="mono">?owner=0x…</span> to the URL to inspect another owner.</div>
   <section id="setup">
     <h2>Vault</h2>
     <div class="row">
