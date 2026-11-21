@@ -1,0 +1,33 @@
+chain 44005  vault 0xe990d83f74ae1adf11360dd3af69eb8470768f22  token 0x456569838f1d43009A91ebA4263147Afd7233483
+owner 0xc219ae18045bb05a399a8ade4133306bb7ef430c
+agent 0xBBD079655F96AE605B51EBD1352cD574237B6378 (session key, no gas)
+merchant 0x39dbbEAa7b976B618534b28f3847df6B7FC2D4cE
+
+1. Owner deposits 5 tUSD8
+  ok  approve: https://explorer-test.qday.info/tx/0x1b5a09e5744510bab85bf6b544ed3e6ac531df7ae917e0b953234eacd35385b9
+  ok  deposit: https://explorer-test.qday.info/tx/0x1e40169a6e70ed3d03081717043891ecf153b444649b6cffab405277dc6a585d
+
+2. Owner issues a mandate: 1/payment, 3/day, review above 0.5, 7 days, one merchant
+  ok  createMandate: https://explorer-test.qday.info/tx/0xff45c15219f2fcc089da2ede8570b5d0644b0208f77d41199e45a743757b3949
+  mandate #1, spendable now 1 tUSD8
+
+3. Agent pays invoice INV-1001 (0.4) gaslessly through the relayer
+  ok  payWithSig INV-1001: https://explorer-test.qday.info/tx/0x8d0240f5de9c1e208c4ea2e3769c4a714b4557adf47103bc924a7389128845d4
+
+4. Agent times out and retries INV-1001: refused, no double payment
+  blocked retry INV-1001: RefAlreadyUsed
+
+5. Agent tries 1.5 in one payment: over the per-payment cap
+  blocked INV-1002: OverPerTxCap
+
+6. Agent pays 0.9: above the review threshold, held for the owner
+  ok  INV-1003: https://explorer-test.qday.info/tx/0x6769572d82e23d5979e1f0b76fda52b460874a4b95ddf9be34d9e7d6228b64c3
+  pending #1; owner approves
+  ok  approvePending: https://explorer-test.qday.info/tx/0xb54fff381e668f69154fdc18fa986b2c84059ed06ed74d7f748f9ba6bd373621
+
+7. Owner revokes the mandate; the agent's next intent fails in the same block
+  ok  revoke: https://explorer-test.qday.info/tx/0xeefb951ae0965548320dd45cdee6ef3c86545967168bb9353289d668093741ba
+  blocked INV-1004: MandateRevokedError
+
+merchant received 1.3 tUSD8
+owner free balance in vault 3.7 tUSD8

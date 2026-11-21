@@ -1,0 +1,32 @@
+{
+  "name": "mandatepay",
+  "version": "1.0.0",
+  "description": "Spending mandates for AI agents, paid in tUSD8 on QDay Aevum",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "demo": "hardhat run scripts/demo.ts",
+    "demo:aevum": "hardhat run scripts/demo.ts --network aevum",
+    "deploy:aevum": "hardhat run scripts/deploy.ts --network aevum",
+    "build:app": "hardhat compile && node scripts/export-abi.mjs && esbuild app/vendor-entry.js --bundle --format=esm --minify --outfile=app/vendor/viem.js",
+    "app": "python3 -m http.server 8080 -d app",
+    "fork:check": "cross-env FORK_AEVUM=1 hardhat run scripts/fork-check.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
+    "@nomicfoundation/hardhat-viem": "^2.0.6",
+    "@openzeppelin/contracts": "^5.1.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "chai": "^4.5.0",
+    "cross-env": "^10.1.0",
+    "esbuild": "^0.24.0",
+    "hardhat": "^2.22.17",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3",
+    "viem": "^2.21.54"
+  }
+}

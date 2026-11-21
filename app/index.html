@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MandatePay Console</title>
+<meta name="description" content="Owner console for MandatePay: spending mandates for AI agents, paid in tUSD8 on QDay Aevum.">
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #14171c; --muted: #5d6673; --line: #e2e6eb;
+    --accent: #3b5bdb; --accent-ink: #ffffff; --ok: #1f8a4c; --warn: #b26a00; --bad: #c92a2a;
+    --chip: #eef1f6; --bar: #dfe4ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1216; --panel: #171b21; --ink: #e8ebef; --muted: #98a2b0; --line: #2a313a;
+      --accent: #7b93ff; --accent-ink: #0f1216; --ok: #4cc27f; --warn: #e3a33b; --bad: #ff6b6b;
+      --chip: #222830; --bar: #2a313a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 18px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; display: grid; gap: 16px; }
+  .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+  section h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .count { background: var(--chip); border-radius: 999px; padding: 0 8px; font-size: 12px; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--chip); border-radius: 8px; padding: 8px 10px; }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  input, select, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 54px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+  .row > * { flex: 1 1 120px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 6px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.danger { color: var(--bad); border-color: var(--bad); }
+  button:disabled { opacity: .5; cursor: default; }
+  .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; word-break: break-all; }
+  .muted { color: var(--muted); }
+  .badge { font-size: 12px; border-radius: 999px; padding: 1px 8px; background: var(--chip); color: var(--muted); }
+  .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); } .badge.bad { color: var(--bad); }
+  .mandate { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .mandate .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mandate .top strong { font-size: 15px; }
+  .bar { height: 8px; background: var(--bar); border-radius: 4px; overflow: hidden; margin: 8px 0 4px; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 4px 12px; font-size: 13px; margin-top: 6px; }
+  .kv div span { color: var(--muted); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .pending { border-left: 3px solid var(--warn); padding: 8px 12px; margin-bottom: 8px; background: var(--chip); border-radius: 0 8px 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  .tablewrap { overflow-x: auto; }
+  #toast { position: fixed; right: 16px; bottom: 16px; max-width: min(420px, calc(100vw - 32px)); display: grid; gap: 8px; z-index: 10; }
+  #toast div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 18px rgba(0,0,0,.12); font-size: 13px; }
+  #toast div.bad { border-color: var(--bad); }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+  .key { background: var(--chip); border-radius: 6px; padding: 8px; margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>MandatePay Console</h1>
+    <div class="sub">Give your AI agent a mandate, not a wallet.</div>
+  </div>
+  <div class="spacer"></div>
+  <span id="net" class="badge">not connected</span>
+  <span id="who" class="mono muted"></span>
+  <button id="connect" class="primary">Connect wallet</button>
+</header>
+
+<main>
+  <section id="setup">
+    <h2>Vault</h2>
+    <div class="row">
+      <div><label for="vaultAddr">MandateVault address</label><input id="vaultAddr" class="mono" placeholder="0x…"></div>
+      <div><label for="tokenAddr">Token (tUSD8)</label><input id="tokenAddr" class="mono"></div>
+      <div style="flex:0 0 auto"><button id="load">Load</button></div>
+    </div>
+    <div id="devkey" hidden>
+      <label for="devKeyInput">Local chain only: owner private key (Hardhat test account)</label>
+      <div class="row"><input id="devKeyInput" class="mono" placeholder="0x…"><div style="flex:0 0 auto"><button id="useDevKey">Use key</button></div></div>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section>
+      <h2>Funds</h2>
+      <div class="stats">
+        <div class="stat"><b id="sWallet">–</b><span>tUSD8 in your wallet</span></div>
+        <div class="stat"><b id="sFree">–</b><span>free in vault</span></div>
+        <div class="stat"><b id="sHeld">–</b><span>held for review</span></div>
+      </div>
+      <div class="row">
+        <div><label for="amt">Amount (tUSD8)</label><input id="amt" type="number" min="0" step="0.01" value="1"></div>
+        <div style="flex:0 0 auto"><button id="deposit" class="primary">Deposit</button></div>
+        <div style="flex:0 0 auto"><button id="withdraw">Withdraw</button></div>
+      </div>
+      <div class="row" style="margin-top:14px; align-items:center">
+        <div><span class="muted" style="font-size:13px">Kill switch: every mandate stops at once. Reversible.</span></div>
+        <div style="flex:0 0 auto"><button id="freeze" class="danger">Freeze all agents</button></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>New mandate</h2>
+      <div class="row">
+        <div><label for="mLabel">Label</label><input id="mLabel" value="shopping-agent" maxlength="31"></div>
+        <div><label for="mPeriod">Budget window</label>
+          <select id="mPeriod"><option value="3600">per hour</option><option value="86400" selected>per day</option><option value="604800">per week</option><option value="2592000">per 30 days</option></select></div>
+      </div>
+      <label for="mAgent">Agent session key (address)</label>
+      <div class="row"><input id="mAgent" class="mono" placeholder="0x…"><div style="flex:0 0 auto"><button id="genKey">New session key</button></div></div>
+      <div id="keyOut" class="key" hidden></div>
+      <div class="row">
+        <div><label for="mCap">Max per payment</label><input id="mCap" type="number" min="0" step="0.01" value="1"></div>
+        <div><label for="mBudget">Budget per window</label><input id="mBudget" type="number" min="0" step="0.01" value="3"></div>
+        <div><label for="mReview">Ask me above</label><input id="mReview" type="number" min="0" step="0.01" value="0.5"></div>
+        <div><label for="mDays">Expires in (days)</label><input id="mDays" type="number" min="1" step="1" value="7"></div>
+      </div>
+      <label for="mMerchants">Allowed merchants, one address per line (empty = any merchant, still capped)</label>
+      <textarea id="mMerchants" placeholder="0x…"></textarea>
+      <div class="actions"><button id="create" class="primary">Issue mandate</button></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Waiting for you <span id="pendCount" class="count">0</span></h2>
+    <div id="pendList"><div class="empty">Nothing to review.</div></div>
+  </section>
+
+  <section>
+    <h2>Mandates <span id="mandCount" class="count">0</span></h2>
+    <div id="mandList"><div class="empty">Connect a wallet and load a vault.</div></div>
+  </section>
+
+  <section>
+    <h2>Activity</h2>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Block</th><th>Event</th><th>Mandate</th><th>Detail</th><th>Tx</th></tr></thead>
+      <tbody id="actList"><tr><td colspan="5" class="empty">No activity yet.</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+<div id="toast" aria-live="polite"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
