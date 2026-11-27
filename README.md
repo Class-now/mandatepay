@@ -74,8 +74,10 @@ Needs Node 22+.
 
 ```bash
 npm install
-npm test          # 18 tests: caps, budget windows, allow-list, revoke, freeze, expiry,
-                  # escalation approve/reject/expire, gasless intents, replay and tamper checks
+npm test          # 24 tests: caps, budget windows, allow-list, revoke, freeze, expiry,
+                  # escalation approve/reject/expire, gasless intents, replay and tamper checks,
+                  # payee handles, confirmation of payee, agent identity
+npm run identity  # confirmation of payee + agent identity walkthrough
 npm run demo      # the full story on a local Shanghai chain with a stand-in tUSD8
 ```
 
@@ -130,6 +132,31 @@ VAULT=0x... npm run demo:aevum   # the same walkthrough against real tUSD8, with
 | `AGENT_KEY` | demo | Agent session key; a fresh one is generated if unset |
 | `MERCHANT` | demo | Merchant address; a fresh one is generated if unset |
 
+## Agent identity and Confirmation of Payee (`contracts/PayeeDirectory.sol`)
+
+An agent that pays from an invoice or a chat message can be handed a look-alike address. QDay's ERC-8004 registry is still in internal testing and is not open for this challenge (Aevum Starter Kit docs, "Confirmation of Payee"), so MandatePay keeps the name-to-address mapping in its own contract and answers the two questions an identity registry would:
+
+- **Is `demo-coffee` really this address?** A merchant claims a unique handle from its own address (`registerMerchant`). Before the agent signs a `PaymentIntent` it calls `confirmPayee(handle, address)`; if the invoice's address is not the one that owns the handle, the agent refuses before any signature exists.
+- **Which agent paid, on whose behalf?** The owner declares the session key's handle and an agent-card URI (`declareAgent`), and the session key accepts with one EIP-712 signature (`acceptAgent`, gasless, any relayer). `agentOf(sessionKey)` returns the handle, the principal and whether the agent confirmed it, so a merchant can label every `Paid` event with "demo-shopping-agent, acting for 0xc219…".
+
+Handles are lowercase `a-z 0-9 -`, 3 to 32 characters (no `Coffee-Shop` vs `coffee-shop`). Only the principal can re-declare or remove an agent; changing the handle clears the confirmation until the agent signs again. When QDay opens its ERC-8004 registry, `agentOf` is the one call to point at it.
+
+| | |
+|---|---|
+| **PayeeDirectory (deployed)** | [`0x81c6f6d3e045aca5092adf9f30b910fc8c06f22e`](https://explorer-test.qday.info/address/0x81c6f6d3e045aca5092adf9f30b910fc8c06f22e) |
+
+`VAULT=0xe990d83f74ae1adf11360dd3af69eb8470768f22 npm run identity:aevum` (2026-11-28, real tUSD8, the same vault):
+
+| Step | Result | Transaction |
+|---|---|---|
+| 1. Merchant claims `demo-coffee-43299` from its own address | ok | [gas for merchant](https://explorer-test.qday.info/tx/0x6a2a3b40e5fead98c7d38db9f45e4a17412e58f0c1b60f58db584627014c9bd5) · [registerMerchant](https://explorer-test.qday.info/tx/0xc8cd54e5d92079da8d47b297900ed55c0f626110dac3c4a5070d260a1d59ad8b) |
+| 2. Owner issues a mandate to a fresh session key and declares it `demo-shopping-agent` | ok | [createMandate](https://explorer-test.qday.info/tx/0x0155f188c3006a32ef79b99e0ce765a06fa46659639f8f9280b5a67b47966df1) · [declareAgent](https://explorer-test.qday.info/tx/0x44f5d0b2c80e3b81a94b4222e75988f6602d9b38ec0f6f4c6d7b78510025a568) |
+| 3. Agent accepts its identity with a signature, relayed (agent has no gas) | ok, `confirmed=true` | [acceptAgent](https://explorer-test.qday.info/tx/0xfe8115a568e9922e4d542a336b158497b4c47382958456bae7c4a325c849bd8d) |
+| 4. Invoice INV-2001: pay `demo-coffee-43299` 0.3 at its real address | `confirmPayee` true, paid | [payWithSig](https://explorer-test.qday.info/tx/0xe2a27beb488a91de1b7e188e29555b9bd50075d6b8e7b5589fbb2eeb2c4c0eb1) |
+| 5. Phishing invoice INV-2002: same handle, look-alike address | `confirmPayee` false, refused before signing | (no transaction, no signature) |
+
+The merchant received 0.3 tUSD8; the look-alike received nothing.
+
 ## Owner console (`app/`)
 
 ![MandatePay console: an escalated payment waiting for approval, a mandate's budget bar and the on-chain activity log](docs/console.png)
@@ -158,10 +185,13 @@ Open it, connect a browser wallet (it offers to add Aevum, chain `44005`), and p
 
 ```
 contracts/MandateVault.sol     the vault, mandates, escalation, gasless intents
+contracts/PayeeDirectory.sol   confirmation of payee and agent identity (ERC-8004 stand-in)
 contracts/mocks/MockUSD8.sol   local stand-in for tUSD8 (from the Aevum Starter Kit, MIT)
 test/MandateVault.test.ts      unit tests (Hardhat + viem)
+test/PayeeDirectory.test.ts    unit tests for handles, confirmation of payee and agent identity
 scripts/demo.ts                end-to-end walkthrough (local or Aevum)
 scripts/deploy.ts              deployment
+scripts/identity-demo.ts       directory walkthrough: handle, declared agent, phishing invoice refused
 scripts/fork-check.ts          EIP-3009 deposit and payment against a fork of Aevum (real tUSD8)
 scripts/chain.ts               Aevum chain definition for hardhat-viem
 scripts/export-abi.mjs         writes app/abi.js from the compiled contract
@@ -172,7 +202,7 @@ video/                         demo video, its slides and the Playwright script 
 ## Roadmap
 
 - Merchant-side SDK: a one-line "pay with mandate" button that returns a `ref` for the agent to sign.
-- Agent identity: bind a mandate to an ERC-8004 agent identity, so merchants can see which agent paid.
+- Agent identity: point `agentOf` at QDay's ERC-8004 registry once it opens (today `PayeeDirectory` holds the same data).
 - Per-merchant sub-budgets and category limits.
 - Notification hook for escalations (Telegram / email) driven by `PaymentEscalated` events.
 

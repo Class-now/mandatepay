@@ -10,7 +10,9 @@
     "deploy:aevum": "hardhat run scripts/deploy.ts --network aevum",
     "build:app": "hardhat compile && node scripts/export-abi.mjs && esbuild app/vendor-entry.js --bundle --format=esm --minify --outfile=app/vendor/viem.js",
     "app": "python3 -m http.server 8080 -d app",
-    "fork:check": "cross-env FORK_AEVUM=1 hardhat run scripts/fork-check.ts"
+    "fork:check": "cross-env FORK_AEVUM=1 hardhat run scripts/fork-check.ts",
+    "identity": "hardhat run scripts/identity-demo.ts",
+    "identity:aevum": "hardhat run scripts/identity-demo.ts --network aevum"
   },
   "keywords": [],
   "author": "",
